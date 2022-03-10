@@ -15,43 +15,24 @@ class gameViewController: UIViewController {
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
         return .landscapeLeft
     }
-    var difficulty: Int = 0
-    var scorePoints: Int = 0
-    var roundCounter: Int = 0
-    var expectedResult: Int?
+
+    var gameInstance: Game!
+    var currentRound: Round!
     @IBOutlet weak var minValueLabel: UILabel!
     @IBOutlet weak var maxValueLabel: UILabel!
     @IBOutlet weak var roundCounterLabel: UILabel!
     @IBOutlet weak var neededDigitLabel: UILabel!
     
     @IBAction func completeRound(_ sender: UIButton) {
-        let answerValue = gameSlider.value
-        guard let needed = expectedResult else { return }
-        let resultValue = Int(answerValue) - needed
-        let result = resultValue >= 0 ? resultValue : -resultValue
-        var message: String = ""
-        switch(result) {
-        case 10...:
-            message = "Вы промахнулись слишком сильно. Этот раунд без очков..."
-        case 6...9:
-            message = "Вы получили 3 очка. Далековато от истины!"
-            scorePoints += 3
-        case 3...5:
-            message = "Вы получили 6 очков. Это было близко!"
-            scorePoints += 6
-        case 1...2:
-            message = "Вы были очень близки! Получаете 8 очков!"
-            scorePoints += 8
-        case 0:
-            message = "Вы идеально попали в нужное число и получаете 10 очков!"
-            scorePoints += 10
-        default:
-            message = "Ошибка!"
-        }
-        roundCounter += 1
+        currentRound.finishRound(with: Int(gameSlider.value))
+        let message = currentRound.getRoundResult()
+        gameInstance.add(currentRound)
         let roundSwitchAlert = UIAlertController(title: "Результат раунда", message: message, preferredStyle: .alert)
-        if roundCounter == 5 {
-            roundSwitchAlert.title = "Результат игры: \(scorePoints) очков"
+        if gameInstance.roundsCount == 5 {
+            let (finalMessage, finalScore) = gameInstance.finishGame()
+            roundSwitchAlert.message = finalMessage
+            let accuracy: Double = 100-(Double(finalScore)/(Double(gameInstance.mode.maxValue)*5)*100)
+            roundSwitchAlert.title = "Ваша точность: \(accuracy)%"
             let lastRoundConfirmation = UIAlertAction(title: "Выход", style: .destructive) { _ in
                 self.dismiss(animated: true, completion: nil)
             }
@@ -60,7 +41,7 @@ class gameViewController: UIViewController {
         }
         else {
             let roundSwitchConfirmation = UIAlertAction(title: "OK", style: .default) { _ in
-                self.startNewRound(round: self.roundCounter)
+                self.startNew(round: Round(forGame: self.gameInstance))
             }
             roundSwitchAlert.addAction(roundSwitchConfirmation)
             present(roundSwitchAlert, animated: true, completion: nil)
@@ -72,22 +53,21 @@ class gameViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        let difficulty = gameInstance.mode.maxValue
         gameSlider.minimumValue = 0
         gameSlider.maximumValue = Float(difficulty)
         
         minValueLabel.text = String(0)
         maxValueLabel.text = String(difficulty)
-        
-        startNewRound(round: roundCounter)
+        startNew(round: Round(forGame: gameInstance))
         // Do any additional setup after loading the view.
     }
     
-    func startNewRound(round: Int) {
-        
-        expectedResult = Int.random(in: 0...difficulty)
-        gameSlider.value = Float(difficulty/2)
-        neededDigitLabel.text = "Необходимое число: \(expectedResult!)"
-        roundCounterLabel.text = "Раунд: \(round+1)/5"
+    func startNew(round: Round) {
+        currentRound = round
+        gameSlider.value = Float(gameInstance.mode.maxValue/2)
+        neededDigitLabel.text = "Необходимое число: \(round.expectedValue)"
+        roundCounterLabel.text = "Раунд: \(gameInstance.roundsCount+1)/5"
         
     }
 

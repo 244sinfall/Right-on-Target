@@ -19,7 +19,7 @@ class WelcomeSceneVC: UIViewController {
         for mode in Difficulty.getAllDifficulties() {
             let modeInfo = mode.getDifficultyInfo()
             let newMode = UIAlertAction(title: modeInfo.modeName, style: .default) { _ in
-                self.startGame(withDifficultyOf: modeInfo.maxValue)
+                self.startGame(with: modeInfo)
             }
             difficultyAlert.addAction(newMode)
         }
@@ -42,9 +42,9 @@ class WelcomeSceneVC: UIViewController {
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         return .portrait
     }
-    private func startGame(withDifficultyOf difficulty: Int) {
+    private func startGame(with mode: GameMode) {
         let gameVC = storyboard?.instantiateViewController(withIdentifier: "GameScene") as! gameViewController
-        gameVC.difficulty = difficulty
+        gameVC.gameInstance = Game(withMode: mode)
         gameVC.modalPresentationStyle = .fullScreen
     
         show(gameVC, sender: self)
